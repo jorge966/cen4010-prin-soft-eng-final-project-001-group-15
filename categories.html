@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Categories - Book Catalog App</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+  <!-- Navigation Bar -->
+  <header>
+    <h1>BookLounge Library</h1> 
+    <nav>
+      <ul>
+        <li><a href="home.html">Home</a></li>
+        <li><a href="categories.html">Categories</a></li> <!-- Active link for Categories -->
+        <li><a href="favorites.html">Favorites</a></li>
+        <li id="loginSignupLink"><a href="home.html">Login/Signup</a></li>
+      </ul>
+    </nav>
+  </header>
+
+  <!-- Genres Dropdown -->
+  <section class="genres">
+    <h2>Choose a Genre</h2>
+    <select id="genreSelect" onchange="selectGenre()">
+      <option value="Fiction">Fiction</option>
+      <option value="History">History</option>
+      <option value="Science">Science</option>
+      <option value="Fantasy">Fantasy</option>
+      <option value="Mystery">Mystery</option>
+      <option value="Romance">Romance</option>
+      <option value="Thriller">Thriller</option>
+      <option value="Biography">Biography</option>
+      <option value="Cooking">Cooking</option>
+      <option value="Self-Help">Self-Help</option>
+      <option value="Business">Business</option>
+      <option value="Travel">Travel</option>
+      <!-- Add more genres here -->
+    </select>
+  </section>
+
+  <!-- Book List -->
+  <section class="book-list">
+    <!-- Book items will be dynamically added here -->
+    <div id="books"></div>
+    <ul class="pagination" id="pagination"></ul>
+  </section>
+
+  <!-- Script for fetching and displaying books -->
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+  <script type="text/javascript" src="https://npmcdn.com/parse/dist/parse.min.js"></script>
+  <script  >
+    // Initialize Back4App with your App ID and JS Key
+    Parse.initialize("yD0vm3TnlGVnpfaktzW6sICVtnwHbO6xnddCbTu2", "FNSIe1py5pEgNQJHLz4ZwajvfxIlD8Tgs2hUdcl3");
+    Parse.serverURL = 'https://parseapi.back4app.com/';
+
+    const currentUser = Parse.User.current();
+
+    const booksPerPage = 9; // Number of books per page (3 books per row)
+    let currentPage = 1;
+
+    document.addEventListener('DOMContentLoaded', function() {
+    const navigationList = document.getElementById('navigationList');
+    const loginSignupLink = document.getElementById('loginSignupLink');
+    
+    // Check if the user is logged in
+    const currentUser = Parse.User.current();
+    if (currentUser) {
+      // If logged in, hide the Login/Signup link
+      loginSignupLink.style.display = 'none';
+    } else {
+      // If not logged in, show the Login/Signup link
+      loginSignupLink.style.display = 'block';
+    }
+  });
+
+    // Function to fetch books by category and page from the Google Books API
+    function fetchBooksByCategory(category, page) {
+      const startIndex = (page - 1) * booksPerPage;
+      const apiUrl = `https://www.googleapis.com/books/v1/volumes?q=subject:${category}&startIndex=${startIndex}&maxResults=${booksPerPage}`;
+
+      fetch(apiUrl)
+        .then(response => response.json())
+        .then(data => {
+          displayBooks(data.items);
+          displayPagination(page, data.totalItems);
+        })
+        .catch(error => console.error('Error:', error));
+    }
+
+    // Function to display fetched books
+    function displayBooks(books) {
+    const bookList = document.getElementById('books');
+    bookList.innerHTML = ''; // Clear existing books
+
+    books.forEach(book => {
+      const bookItem = document.createElement('div');
+      bookItem.classList.add('book-item');
+
+      const title = book.volumeInfo.title || 'Title not available';
+      const author = book.volumeInfo.authors ? book.volumeInfo.authors.join(', ') : 'Author not available';
+      const imageUrl = book.volumeInfo.imageLinks ? book.volumeInfo.imageLinks.thumbnail : 'placeholder.jpg';
+
+      let description = book.volumeInfo.description || 'Description not available';
+      const maxLength = 200;
+      if (description.length > maxLength) {
+        description = description.substring(0, maxLength) + '...';
+      }
+
+      bookItem.innerHTML = `
+        <img src="${imageUrl}" alt="${title} Cover">
+        <div class="book-details">
+          <h3>${title}</h3>
+          <p><strong>Author:</strong> ${author}</p>
+          <p><strong>Description:</strong> ${description}</p>
+        </div>
+      `;
+
+      // Get the book ID or any unique identifier for the book
+      const bookId = book.id; // Replace with your unique book ID
+      const favoriteButtons = createFavoriteButtons(bookId);
+      bookItem.appendChild(favoriteButtons);
+
+      bookList.appendChild(bookItem);
+    });
+  }
+
+    // Function to display pagination
+    function displayPagination(currentPage, totalItems) {
+      const totalPages = Math.ceil(totalItems / booksPerPage);
+      const pagination = document.getElementById('pagination');
+      pagination.innerHTML = '';
+
+      for (let i = 1; i <= totalPages; i++) {
+        const pageLink = document.createElement('li');
+        const pageButton = document.createElement('a');
+        pageButton.href = '#';
+        pageButton.textContent = i;
+
+        pageButton.addEventListener('click', function(event) {
+          event.preventDefault();
+          fetchBooksByCategory(document.getElementById('genreSelect').value, i);
+          currentPage = i;
+          updateActivePage();
+
+          // Scroll to the top
+          window.scrollTo({ top: 0, behavior: 'smooth' }); // Smooth scroll to the top
+        });
+
+        pageLink.appendChild(pageButton);
+        pagination.appendChild(pageLink);
+      }
+
+      updateActivePage();
+    }
+
+    // Function to update active page in pagination
+    function updateActivePage() {
+      const pagination = document.getElementById('pagination');
+      const pageButtons = pagination.getElementsByTagName('a');
+
+      for (let i = 0; i < pageButtons.length; i++) {
+        const button = pageButtons[i];
+        if (parseInt(button.textContent) === currentPage) {
+          button.parentElement.classList.add('active');
+        } else {
+          button.parentElement.classList.remove('active');
+        }
+      }
+    }
+
+  function createFavoriteButtons(bookId) {
+  const addToFavoritesBtn = document.createElement('button');
+  addToFavoritesBtn.textContent = 'Add to Favorites';
+  addToFavoritesBtn.addEventListener('click', async () => {
+    if (!Parse.User.current()) {
+      alert('You have to log in to add books to favorites!');
+      return;
+    }
+    await addToFavorites(bookId);
+  });
+
+  const removeFromFavoritesBtn = document.createElement('button');
+  removeFromFavoritesBtn.textContent = 'Remove from Favorites';
+  removeFromFavoritesBtn.addEventListener('click', async () => {
+    if (!Parse.User.current()) {
+      alert('You have to log in to remove books from favorites!');
+      return;
+    }
+    await removeFromFavorites(bookId);
+  });
+
+  const buttonDiv = document.createElement('div');
+  buttonDiv.appendChild(addToFavoritesBtn);
+  buttonDiv.appendChild(removeFromFavoritesBtn);
+
+  return buttonDiv;
+}
+    function addToFavorites(bookId) {
+  const currentUser = Parse.User.current();
+  let currentFavorites = currentUser.get('favorites') || [];
+
+  const existingBook = currentFavorites.find((book) => book === bookId);
+
+  if (existingBook) {
+    alert('Book is already in your favorites!');
+    return;
+  }
+
+  // Make sure bookId is a string before pushing it to favorites
+  currentFavorites.push(String(bookId));
+
+  currentUser.set('favorites', currentFavorites);
+
+  currentUser.save().then((updatedUser) => {
+    console.log('Book added to favorites:', updatedUser.get('favorites'));
+    // You might want to update the UI to reflect the changes here
+  }).catch((error) => {
+    console.error('Error adding book to favorites:', error);
+  });
+}
+
+
+function removeFromFavorites(bookIdToRemove) {
+  const currentUser = Parse.User.current();
+  let currentFavorites = currentUser.get('favorites') || [];
+
+  const existingBookIndex = currentFavorites.findIndex((book) => book === bookIdToRemove);
+
+  if (existingBookIndex === -1) {
+    alert('Book not found in favorites!');
+    return;
+  }
+
+  currentFavorites = currentFavorites.filter((book) => book !== bookIdToRemove);
+
+  currentUser.set('favorites', currentFavorites);
+
+  currentUser.save().then((updatedUser) => {
+    console.log('Book removed from favorites:', updatedUser.get('favorites'));
+    // You might want to update the UI to reflect the changes here
+  }).catch((error) => {
+    console.error('Error removing book from favorites:', error);
+  });
+}
+
+
+
+    // Function to select genre from dropdown
+    function selectGenre() {
+      const selectedGenre = document.getElementById('genreSelect').value;
+      fetchBooksByCategory(selectedGenre, 1);
+      currentPage = 1;
+    }
+
+    // Fetch books for the initial load
+    fetchBooksByCategory('Fiction', 1);
+  </script>
+
+</body>
+</html>
+
+
+
+
+

@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Book Catalog App</title>
+  <link rel="stylesheet" href="styles.css">
+</head >
+<body>
+  <!-- Navigation Bar -->
+  <header style="text-align: center;" >
+    <h1>BookLounge Library</h1> 
+    <nav>
+      <ul id="navList">
+        <li><a href="home.html">Home</a></li>
+        <li><a href="categories.html">Categories</a></li>
+        <li id="favorites" style="display:none;"><a href="favorites.html">Favorites</a></li>
+        <li id="loginSignup"><a href="#">Login/Signup</a></li>
+        
+        <li id="logout" style="display:none;"><a href="#">Logout</a></li>
+      </ul>
+    </nav>
+  </header>
+
+  <!-- Login/Signup Section -->
+  <section class="auth-section" style="display:none;">    <!-- Login Form -->
+    <div id="login" class="auth-form">
+      <h2>Login</h2>
+      <!-- Your login form here -->
+      <form>
+        <!-- Input fields for username and password -->
+        <input type="text" placeholder="Username" id="loginUsername" required>
+        <input type="password" placeholder="Password" id="loginPassword" required>
+        <button type="submit">Login</button>
+      </form>
+    </div>
+
+
+    <!-- Signup Form -->
+    <div id="signup" class="auth-form">
+        <h2>Signup</h2>
+        <!-- Your signup form here -->
+        <form>
+          <!-- Input fields for email, username, and password -->
+          <input type="email" placeholder="Email" id="signupEmail" required>
+          <input type="text" placeholder="Username" id="signupUsername" required>
+          <input type="password" placeholder="Password" id="signupPassword" required>
+          <button type="submit">Signup</button>
+        </form>
+      </div>
+    </section>
+
+  <!-- Search Bar -->
+  <section class="search-bar" id="searchBar">
+    <input type="text" placeholder="Search Books">
+    <button id="searchButton">Search</button>
+  </section>
+
+  <section class="book-list" style="display: none;">
+    <!-- Book items will be dynamically added here -->
+    <!-- Example structure for a book -->
+    <div class="book-item">
+      <img src="placeholder.jpg" alt="Book Cover">
+      <h3>Book Title</h3>
+      <p>Author: Author Name</p>
+    </div>
+    <!-- You can repeat this structure for multiple books -->
+  </section>
+
+
+
+
+
+
+
+
+
+  <script type="text/javascript" src="https://npmcdn.com/parse/dist/parse.min.js"></script>
+  <script  >
+    // Initialize Back4App with your App ID and JS Key
+    Parse.initialize("yD0vm3TnlGVnpfaktzW6sICVtnwHbO6xnddCbTu2", "FNSIe1py5pEgNQJHLz4ZwajvfxIlD8Tgs2hUdcl3");
+    Parse.serverURL = 'https://parseapi.back4app.com/';
+
+    function checkAuthStatus() {
+  const currentUser = Parse.User.current();
+  const searchBar = document.querySelector('.search-bar');
+  const authSection = document.querySelector('.auth-section');
+  const loginSignupLink = document.getElementById('loginSignup');
+  const logoutLink = document.getElementById('logout');
+
+  if (currentUser) {
+    // If user is logged in
+    loginSignupLink.style.display = 'none'; // Hide the Login/Signup link
+    logoutLink.style.display = 'block'; // Show the Logout link
+    searchBar.style.display = 'block';
+    authSection.style.display = 'none';
+    document.getElementById('favorites').style.display = 'block';
+  } else {
+    // If user is logged out
+    loginSignupLink.style.display = 'none'; // Hide the Login/Signup link
+    logoutLink.style.display = 'none'; // Hide the Logout link
+    searchBar.style.display = 'none';
+    authSection.style.display = 'block';
+    document.getElementById('favorites').style.display = 'none';
+  }
+}
+
+
+    // Check authentication status on page load
+    checkAuthStatus();
+
+    // Function to handle user sign-up
+    document.getElementById('signup').addEventListener('submit', async function(event) {
+      event.preventDefault();
+      const email = document.getElementById('signupEmail').value;
+      const username = document.getElementById('signupUsername').value;
+      const password = document.getElementById('signupPassword').value;
+
+      const user = new Parse.User();
+      user.set('username', username);
+      user.set('password', password);
+      user.set('email', email);
+
+      try {
+        const newUser = await user.signUp();
+        console.log('User signed up:', newUser);
+        alert('User signed up successfully!');
+      } catch (error) {
+        console.error('Error signing up:', error);
+        alert('Error signing up. Please try again.');
+      }
+      checkAuthStatus();
+    });
+
+    document.getElementById('login').addEventListener('submit', async function(event) {
+      event.preventDefault();
+      const username = document.getElementById('loginUsername').value;
+      const password = document.getElementById('loginPassword').value;
+
+      try {
+        const user = await Parse.User.logIn(username, password);
+        console.log('User logged in:', user);
+        // Handle successful login, e.g., redirect to another page
+      } catch (error) {
+        console.error('Error logging in:', error);
+        // Handle login error
+      }
+      checkAuthStatus();
+    });
+
+    document.getElementById('logout').addEventListener('click', function(event) {
+      Parse.User.logOut().then(() => {
+        console.log('User logged out');
+        // After successful logout, check authentication status again
+        checkAuthStatus();
+      });
+    });
+
+
+    function searchBooks() {
+  console.log('Search button clicked'); // Add this line
+  const searchInput = document.querySelector('.search-bar input[type="text"]');
+  const searchTerm = searchInput.value.trim();
+
+  const bookListSection = document.querySelector('.book-list');
+
+  if (searchTerm !== '') {
+    const apiUrl = `https://www.googleapis.com/books/v1/volumes?q=intitle:${searchTerm}&maxResults=10`;
+    fetch(apiUrl)
+      .then(response => response.json())
+      .then(data => {
+        console.log('Fetched data:', data); // Log the fetched data
+        displayBooks(data.items);
+        
+        // Show the book list section after fetching and displaying books
+        bookListSection.style.display = 'block'; // Or 'flex' if it's a flexbox layout
+      })
+      .catch(error => console.error('Error:', error));
+  }
+}
+ 
+
+
+function displayBooks(books) {
+  const bookList = document.querySelector('.book-list');
+
+  // Clear existing books
+  bookList.innerHTML = '';
+
+  books.forEach(book => {
+    const bookItem = document.createElement('div');
+    bookItem.classList.add('book-item');
+
+    const title = book.volumeInfo.title || 'Title not available';
+    const author = book.volumeInfo.authors ? book.volumeInfo.authors.join(', ') : 'Author not available';
+    const imageUrl = book.volumeInfo.imageLinks ? book.volumeInfo.imageLinks.thumbnail : 'placeholder.jpg';
+    const description = book.volumeInfo.description ? (book.volumeInfo.description.length > 150 ? book.volumeInfo.description.substring(0, 150) + '...' : book.volumeInfo.description) : 'Description not available';
+    const bookId = book.id; // Assuming book ID is accessible this way
+
+    
+
+    // Creating HTML elements to display book information
+    bookItem.innerHTML = `
+  <img src="${imageUrl}" alt="${title} Cover">
+  <div class="book-details">
+    <h3>${title}</h3>
+    <p><strong>Author:</strong> ${author}</p>
+    <p><strong>Description:</strong> ${description}</p>
+    <button onclick="addToFavorites('${bookId}', '${title}', '${author}')">Add to Favorites</button>
+    <button onclick="removeFromFavorites('${bookId}')">Remove from Favorites</button>
+  </div>
+`;
+
+    bookList.appendChild(bookItem);
+  });
+}
+
+// Function to add a book to favorites
+function addToFavorites(bookId) {
+  const currentUser = Parse.User.current();
+  let currentFavorites = currentUser.get('favorites') || [];
+
+  const existingBook = currentFavorites.find((book) => book === bookId);
+
+  if (existingBook) {
+    alert('Book is already in your favorites!');
+    return;
+  }
+
+  // Make sure bookId is a string before pushing it to favorites
+  currentFavorites.push(String(bookId));
+
+  currentUser.set('favorites', currentFavorites);
+
+  currentUser.save().then((updatedUser) => {
+    console.log('Book added to favorites:', updatedUser.get('favorites'));
+    // You might want to update the UI to reflect the changes here
+  }).catch((error) => {
+    console.error('Error adding book to favorites:', error);
+  });
+}
+// Function to remove a book from favorites
+function removeFromFavorites(bookIdToRemove) {
+  const currentUser = Parse.User.current();
+  const currentFavorites = currentUser.get('favorites') || [];
+
+  const existingBookIndex = currentFavorites.findIndex((book) => book.bookId === bookIdToRemove);
+
+  if (existingBookIndex === -1) {
+    alert('Book not found in favorites!');
+    return;
+  }
+
+  currentFavorites.splice(existingBookIndex, 1);
+
+  currentUser.set('favorites', currentFavorites);
+
+  currentUser.save().then((updatedUser) => {
+    console.log('Book removed from favorites:', updatedUser.get('favorites'));
+    // You might want to update the UI to reflect the changes here
+  }).catch((error) => {
+    console.error('Error removing book from favorites:', error);
+  });
+}
+
+
+
+const searchButton = document.querySelector('.search-bar button');
+console.log(searchButton); // Check if searchButton is selected
+searchButton.addEventListener('click', searchBooks);
+  </script>
+
+</body>
+</html>

@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Favorites</title>
+  <link rel="stylesheet" href="styles.css">
+  <style>
+    /* Add CSS styles */
+    .book-item {
+    position: relative;
+    display: flex;
+    border: 1px solid #ccc;
+    margin-bottom: 20px;
+    padding: 10px;
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column; /* Set flex-direction to column */
+    justify-content: space-between; /* Align items to the bottom */
+  }
+
+  .book-item img {
+    width: 100px;
+    height: auto;
+    margin-right: 20px;
+  }
+
+  .book-details {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .book-details h3 {
+    margin-top: 0;
+    margin-bottom: 10px;
+  }
+
+  .book-details p {
+    margin-bottom: 10px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    display: -webkit-box;
+    -webkit-line-clamp: 5;
+    -webkit-box-orient: vertical;
+  }
+
+    .book-details .remove-btn {
+      position: absolute;
+      bottom: 5px;
+      right: 5px;
+      padding: 3px 6px; /* Adjust button padding */
+      font-size: 12px; /* Adjust font size */
+    }
+  </style>
+</head>
+
+<body>
+
+  <!-- Navigation Bar -->
+  <header>
+    <h1>BookLounge Library</h1> 
+    <nav>
+      <ul>
+        <li><a href="home.html">Home</a></li>
+        <li><a href="categories.html">Categories</a></li>
+        <li><a href="favorites.html">Favorites</a></li>
+      </ul>
+    </nav>
+  </header>
+
+  <!-- Content for Favorites page goes here -->
+  <section class="favorites-section">
+    <!-- Your favorites content here -->
+    <h2>Your Favorites</h2>
+    <div id="favoritesList"></div>
+  </section>
+
+  <script type="text/javascript" src="https://npmcdn.com/parse/dist/parse.min.js"></script>
+  <script>
+    // Initialize Parse with your Back4App details
+    Parse.initialize("yD0vm3TnlGVnpfaktzW6sICVtnwHbO6xnddCbTu2", "FNSIe1py5pEgNQJHLz4ZwajvfxIlD8Tgs2hUdcl3");
+    Parse.serverURL = 'https://parseapi.back4app.com/';
+
+    document.addEventListener('DOMContentLoaded', async function() {
+      const currentUser = Parse.User.current();
+
+      if (!currentUser) {
+        window.location.href = 'home.html'; // Redirect to your login page if user is not logged in
+      }
+
+      const favoritesSection = document.getElementById('favoritesList');
+      const userFavorites = currentUser.get('favorites') || [];
+
+      // Loop through each book ID in favorites
+      for (const bookId of userFavorites) {
+        try {
+          // Fetch book details using the Google Books API based on the bookId
+          const apiUrl = `https://www.googleapis.com/books/v1/volumes/${bookId}`;
+          const response = await fetch(apiUrl);
+          const data = await response.json();
+          const book = data.volumeInfo;
+
+          // Create HTML elements to display book details
+          const bookItem = document.createElement('div');
+          bookItem.classList.add('book-item');
+
+          // Retrieve book details
+          const title = book.title || 'Title not available';
+          const author = book.authors ? book.authors.join(', ') : 'Author not available';
+          const imageUrl = book.imageLinks ? book.imageLinks.thumbnail : 'placeholder.jpg';
+          const description = book.description || 'Description not available';
+
+          // Display book details in the HTML element
+          bookItem.innerHTML = `
+  <img src="${imageUrl}" alt="${title} Cover">
+  <div class="book-details">
+    <h3>${title}</h3>
+    <p><strong>Author:</strong> ${author}</p>
+    <p><strong>Description:</strong> ${description}</p>
+    <button onclick="removeFromFavorites('${bookId}')">Remove from Favorites</button>
+  </div>
+`;
+
+          // Append the book item to the favorites section
+          favoritesSection.appendChild(bookItem);
+        } catch (error) {
+          console.error('Error fetching book details:', error);
+        }
+      }
+    });
+  </script>
+</body>
+</html>
+
